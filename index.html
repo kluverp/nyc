@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<style>
+canvas {
+    border:1px solid #d3d3d3;
+    background-color: #f1f1f1;
+}
+</style>
+<script src="map.js" type="text/javascript" charset="utf-8"></script>
+<script src="component.js" type="text/javascript" charset="utf-8"></script>
+<script src="Car.js" type="text/javascript" charset="utf-8"></script>
+</head>
+<body onload="startGame()">
+<p id="frames">0</p>
+<script>
+
+var myGamePiece;
+var cars = [];
+var buildings = [];
+var nodes = [];
+
+function startGame() {    
+    myGameArea.start();
+    buildMap();
+    myGamePiece = new component(10, 20, "red", 10, 120);
+    placeCars(1);
+    //placeBuildings(20);
+}
+
+var myGameArea = {
+    canvas : document.createElement("canvas"),
+    start : function() {
+        this.canvas.width = 320 * 2;
+        this.canvas.height = 200 * 2;
+        this.context = this.canvas.getContext("2d");
+        document.body.insertBefore(this.canvas, document.body.childNodes[0]);
+        this.interval = setInterval(updateGameArea, 20);
+        window.addEventListener('keydown', function (e) {
+            myGameArea.keys = (myGameArea.keys || []);
+            myGameArea.keys[e.keyCode] = true;
+        })
+        window.addEventListener('keyup', function (e) {
+            myGameArea.keys[e.keyCode] = false; 
+        })
+    },
+    clear : function() {
+        this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    },
+    frameNo: 0
+}
+
+
+function nodeCollision(x, y)
+{
+    x += 4; // car width
+    y += 4;
+    
+    for (i = 0; i < nodes.length; i += 1) {    
+        if(nodes[i].x == x && nodes[i].y == y) {
+            return nodes[i];
+        }
+    }
+    
+    return false;
+}
+
+
+
+
+function updateGameArea() {
+    document.getElementById("frames").innerHTML = myGameArea.frameNo;
+    myGameArea.frameNo += 1;
+    myGameArea.clear();
+        
+    // buildings
+    for (i = 0; i < buildings.length; i += 1) {
+        buildings[i].update();
+    }
+    
+    // cars
+    for (i = 0; i < cars.length; i += 1) 
+    {
+        var car = cars[i];
+        
+        if(node = nodeCollision(car.x, car.y))
+        {
+            switch(node.type)
+            {
+                case 'right':
+                case 'left':
+                    if(car.speedX) {
+                        car.speedX = 0;
+                        car.speedY = 1;
+                    }
+                    else {
+                        car.speedX = 1;
+                        car.speedY = 0;
+                    }
+                    car.dir *= car.dir; 
+                break;
+                default:
+                car.speedX = 0;
+                car.speedY = 0;    
+            }
+            
+        }
+        car.update();
+    }
+    
+    // nodes
+    for (i = 0; i < nodes.length; i += 1) {
+        nodes[i].update();
+    }
+    
+    myGamePiece.speedX = 0;
+    myGamePiece.speedY = 0; 
+    if (myGameArea.keys && myGameArea.keys[37]) {myGamePiece.speedX = -1; }
+    if (myGameArea.keys && myGameArea.keys[39]) {myGamePiece.speedX = 1; }
+    if (myGameArea.keys && myGameArea.keys[38]) {myGamePiece.speedY = -1; }
+    if (myGameArea.keys && myGameArea.keys[40]) {myGamePiece.speedY = 1; }
+    myGamePiece.newPos(); 
+    myGamePiece.update();
+}
+
+function placeCars(amount) {  
+    for(i = 0; i < amount; i++) {
+        var x = 70 + 10 + 1;
+        var y = 1;
+        var x = 11;
+        var car = new Car(8, 8, "purple", x, y);
+        car.speedX = 1;
+        car.speedY = 0
+        car.dir = -1;
+        cars.push(car);
+    }
+}
+
+
+function placeBuildings(amount) {
+
+    var width = 50;
+        
+    for(i = 0; i < amount; i++) {
+        var x = (i * width) + i*40;
+        var y = i%5 + i * 20;
+        buildings.push(new component(width, 50, "yellow", x, y));
+    }
+}
+
+
+
+
+function buildMap() {
+
+    var x = 0;
+    var y = 0;
+
+    $map.forEach(function(row, index, arr){
+        row.forEach(function(col, index, arr){
+            switch(col){
+                case '╔':
+                    buildings.push(new component(20, 20, "grey", x, y));
+                    var node = new component(1, 1, "white", x + 5, y + 5);
+                    node.type = 'left';
+                    nodes.push(node);
+                    var node = new component(1, 1, "white", x + 15, y + 15);
+                    node.type = 'right';
+                    nodes.push(node);
+                    x += 20;
+                break;
+                case '═':
+                    buildings.push(new component(50, 20, "grey", x, y));
+                    x += 50;
+                break;
+                case '╦':
+                    buildings.push(new component(20, 20, "grey", x, y));
+                    x += 20;
+                break;
+                case '╗':
+                    buildings.push(new component(20, 20, "grey", x, y));
+                    var node = new component(1, 1, "white", x + 15, y + 5);
+                    node.type = 'left';
+                    nodes.push(node);
+                    var node = new component(1, 1, "white", x + 5, y + 15);
+                    node.type = 'right';
+                    nodes.push(node);
+                    x += 20;
+                break;
+                case '║':
+                    buildings.push(new component(20, 50, "grey", x, y));
+                    x += 20;
+                break;
+                case '╠':
+                    buildings.push(new component(20, 20, "grey", x, y));
+                    x += 20;
+                break;
+                case '╬':
+                    buildings.push(new component(20, 20, "grey", x, y));
+                    nodes.push(new component(1, 1, "white", x + 5, y + 5));
+                    nodes.push(new component(1, 1, "white", x + 15, y + 5));
+                    nodes.push(new component(1, 1, "white", x + 5, y + 15));
+                    nodes.push(new component(1, 1, "white", x + 15, y + 15));
+                    x += 20;
+                break;
+                case '╣':
+                    buildings.push(new component(20, 20, "grey", x, y));
+                    x += 20;
+                break;
+                case '╩':
+                    buildings.push(new component(20, 20, "grey", x, y));
+                    x += 20;
+                break;
+                case '╚':
+                    buildings.push(new component(20, 20, "grey", x, y));
+                    var node = new component(1, 1, "white", x + 15, y + 5);
+                    node.type = 'left';
+                    nodes.push(node);
+                    var node = new component(1, 1, "white", x + 5, y + 15);
+                    node.type = 'right';
+                    nodes.push(node);
+                    x += 20;
+                break;
+                case '╝':
+                    buildings.push(new component(20, 20, "grey", x, y));
+                    var node = new component(1, 1, "white", x + 5, y + 5);
+                    node.type = 'right';
+                    nodes.push(node);
+                    var node = new component(1, 1, "white", x + 15, y + 15);
+                    node.type = 'left';
+                    nodes.push(node);
+                    x += 20;
+                break;
+                case 'B':
+                    buildings.push(new component(50, 50, "yellow", x, y));
+                    x += 50;
+                break;  
+                case 'P':
+                    buildings.push(new component(70, 50, "green", x, y));
+                    x += 70;
+                break;
+                default:
+                
+            }
+            //console.log(col, x, y);
+        });
+        x = 0;
+        
+        
+        y += index % 2 ? 50 : 20;
+    });
+}
+
+</script>
+
+
+</body>
+</html>
